@@ -20,17 +20,17 @@ The program is wizard driven (curses-ey) and you specify the following:
 * The target hostname
 
 TIPS:
-*You need to have superuser rights to use this tool because debootstrap will create device nodes (using mknod) as well as chroot into the newly *created system.
-*On the host, you need to get some build dependencies first. These should get automatically installed.
-*The root password on the created image will be "raspberry".
-*The network is configured to use DHCP.
-*We install NTP as the date and time will be wrong, due to no RTC being on the board.
-*We also install  vim, screen, and SSH so you can get started quickly with it.
+* You need to have superuser rights to use this tool because debootstrap will create device nodes (using mknod) as well as chroot into the newly *created system.
+* On the host, you need to get some build dependencies first. These should get automatically installed.
+* The root password on the created image will be "raspberry".
+* The network is configured to use DHCP.
+* We install NTP as the date and time will be wrong, due to no RTC being on the board.
+* We also install  vim, screen, and SSH so you can get started quickly with it.
 
 TODO:
-*Support making and dd-ing re-usable image files. Also, cache packages for rebuilds.
-*Progress bars.
-*Configure users and passwords.
-*Configure boot paramaters.
-*Make more robust.
+* Support making and dd-ing re-usable image files. Also, cache packages for rebuilds.
+* Progress bars.
+* Configure users and passwords.
+* Configure boot paramaters.
+* Make more robust.
 
