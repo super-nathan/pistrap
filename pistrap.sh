@@ -1,0 +1,350 @@
+#!/bin/bash
+
+#Copyright (c) 2012
+#James Bennet <github@james-bennet.com>, Klaus M Pfeiffer <klaus.m.pfeiffer@kmp.or.at>
+
+#Permission to use, copy, modify, and/or distribute this software for
+#any purpose with or without fee is hereby granted, provided that the 
+#above copyright notice and this permission notice appear in all copies.
+
+#THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+#WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES
+#OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE
+#FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY 
+#DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+#IN AN CTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
+#OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+# pistrap.sh - Builds your own minimal (i.e. no GUI) RaspberryPi SD-card image. Images will fit in 1gb and take about 15m (on my crummy connection)
+# The root password on the created image will be "raspberry".
+
+# I take the "QEMU/debootstrap approach". See: http://wiki.debian.org/EmDebian/CrossDebootstrap and http://wiki.debian.org/EmDebian/DeBootstrap
+# Based on work by Klaus M Pfeiffer at http://blog.kmp.or.at/2012/05/build-your-own-raspberry-pi-image/
+
+# Ubuntu doesnt have Xdialog :( - By the way, we supply size 0 so they autosize. May not be right for some text entry fields but meh.
+  
+bootsize="64M" # Boot partition size on RPI.
+mydate=`date +%Y%m%d`
+image=""
+
+tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
+trap "rm -f $tempfile" 0 1 2 5 15
+
+dialog --title "RaspberryPi Card Builder v0.2" \
+--msgbox "\n Please answer a few questions!" 0 0
+
+# Let the user type in the chosen block device to work with
+tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
+trap "rm -f $tempfile" 0 1 2 5 15
+
+dialog --title "Enter path to block device to format" --clear \
+        --inputbox "Device path:" 0 0 2> $tempfile
+
+retval=$?
+device=`cat $tempfile`
+
+case $retval in
+  0)
+     dialog --infobox "Setting device: ${device}..." 0 0; sleep 1;;
+  1)
+	# TODO: We dont allow making a .img right now as its buggy.
+    exit 1;;
+  255)
+      exit 1;;
+esac
+
+# Let the user type in the location to use as a buildroot. This should be an (empty) directory where you want the new system to be populated. This directory will reflect the root filesystem of the new system. Note that the host system is not affected in any way, and all modifications are restricted to the directory you have chosen.
+tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
+trap "rm -f $tempfile" 0 1 2 5 15
+
+dialog --title "Enter path to use as the buildroot (Working directory)" --clear \
+        --inputbox "Buildroot path:" 0 0 2> $tempfile
+
+retval=$?
+
+buildenv=`cat $tempfile`
+rootfs="${buildenv}/rootfs"
+bootfs="${rootfs}/boot"
+
+case $retval in
+  0)
+     dialog --infobox "Working in build root: ${buildenv}..." 0 0; sleep 1;;
+  1)
+    exit 1;;
+  255)
+      exit 1;;
+esac
+
+# Choose the target's Debian suite (Release e.g. stable, testing, sid), that you want to bootstrap.
+
+dialog --clear --title "RaspberryPi Card Builder v0.2" \
+        --menu "Please choose your Suite: " 0 0 0 \
+        "squeeze"  "squeeze" \
+        "wheezy" "wheezy" \
+        "sid" "sid" 2> $tempfile
+
+retval=$?
+suite=`cat $tempfile`
+
+case $retval in
+  0)
+    dialog --infobox "Setting Suite: ${suite}..." 0 0; sleep 1;;
+  1)
+    exit 1;;
+  255)
+    exit 1;;
+esac
+
+# Choose the target architecture (i.e. armel, armhf), that you want to bootstrap.
+
+tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
+trap "rm -f $tempfile" 0 1 2 5 15
+
+dialog --clear --title "RaspberryPi Card Builder v0.2" \
+        --menu "Please choose an Architecture:" 0 0 0 \
+        "armel"  "armel" \
+        "armhf" "armhf" 2> $tempfile
+
+retval=$?
+arch=`cat $tempfile`
+
+case $retval in
+  0)
+     dialog --infobox "Setting Architecture: ${arch}..." 0 0; sleep 1;;
+  1)
+    exit 1;;
+  255)
+    exit 1;;
+esac
+
+# Mirror from which the necessary .deb packages will be downloaded. Choose any mirror, as long as it has the architecture you are trying to bootstrap. See http://www.debian.org/mirror/list for the list of available Debian mirrors. 
+
+# I have only currently tested debian (wheezy/armel) from http://http.debian.net/debian.
+# Raspbian (wheezy/armhf) from  should work too. I could not get emdebian (squeeze/armel) from http://ftp.uk.debian.org/emdebian/grip to work.
+
+tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
+trap "rm -f $tempfile" 0 1 2 5 15
+
+dialog --clear --title "RaspberryPi Card Builder v0.2" \
+        --menu "Please choose a mirror: " 0 0 0 \
+        "http://http.debian.net/debian"  "http://http.debian.net/debian" \
+        "http://downloads.raspberrypi.org/raspbian/raspbian/" "http://downloads.raspberrypi.org/raspbian/raspbian/" 2> $tempfile
+
+retval=$?
+deb_mirror=`cat $tempfile`
+
+case $retval in
+  0)
+     dialog --infobox "Configuring mirror: ${deb_mirror}..." 0 0; sleep 1;;
+  1)
+    exit 1;;
+  255)
+    exit 1;;
+esac
+
+# Let the user type in the chosen target hostname
+tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
+trap "rm -f $tempfile" 0 1 2 5 15
+
+dialog --title "Enter Hostname" --clear \
+        --inputbox "Target Hostname:" 0 0 2> $tempfile
+
+retval=$?
+hostname=`cat $tempfile`
+
+case $retval in
+  0)
+     dialog --infobox "Setting hostname: ${hostname}..." 0 0; sleep 1;;
+  1)
+    exit 1;;
+  255)
+      exit 1;;
+esac
+
+
+dialog --yesno "This utility is beta software and may go horribly wrong.\n\nYou are bootstrapping ${hostname} with ${suite} (${arch}), from ${deb_mirror} into ${buildenv}\n\nAre you SURE you want to Continue?" 0 0
+rc=$?
+if [ "${rc}" != "0" ]; then
+  exit 1
+fi
+
+if [ $EUID -ne 0 ]; then
+dialog --title "RaspberryPi Card Builder v0.2" \
+--msgbox "\n ERROR: This tool must be run with superuser rights!" 0 0 # Because debootstrap will create device nodes (using mknod) as well as chroot into the newly created system
+  exit 1
+else
+dialog --infobox "Installing build dependencies..." 0 0; sleep 1; # TODO: progress ticker
+# On the host, you need to get some build dependencies first.
+sudo apt-get -y install binfmt-support qemu qemu-user-static debootstrap kpartx lvm2 dosfstools git-core binutils ca-certificates ntp ntpdate openssh-server less vim screen multistrap schroot fakechroot cdebootstrap minicom bash
+fi
+
+if ! [ -b $device ]; then
+dialog --title "RaspberryPi Card Builder v0.2" \
+--msgbox "\n ERROR: Device: ${device} is not a block device!" 0 0
+  exit 1
+else
+dialog --infobox "Device: ${device} OK..." 0 0; sleep 1;
+fi
+
+if [ "$device" == "" ]; then
+  dialog --infobox "WARNING: No block device given, creating image instead." 0 0; sleep 1; # You can dd this to a block device yourself later.
+  mkdir -p $buildenv
+  image="${buildenv}/rpi_basic_${suite}_${mydate}.img"
+  dd if=/dev/zero of=$image bs=1MB count=1000
+  device=`losetup -f --show $image`
+  dialog --infobox "Image: ${image} created and mounted as: ${device}" 0 0; sleep 1;
+else
+  dialog --infobox "Formatting Device ${device}" 0 0; sleep 1;
+  dd if=/dev/zero of=$device bs=512 count=1
+fi
+
+fdisk $device << EOF
+n
+p
+1
+
++$bootsize
+t
+c
+n
+p
+2
+
+
+w
+EOF
+
+dialog --infobox "Mounting Partitions..." 0 0; sleep 1;
+
+if [ "$image" != "" ]; then
+  losetup -d $device
+  device=`kpartx -va $image | sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
+  device="/dev/mapper/${device}"
+  bootp=${device}p1
+  rootp=${device}p2
+else
+  if ! [ -b ${device}1 ]; then
+    bootp=${device}p1
+    rootp=${device}p2
+    if ! [ -b ${bootp} ]; then
+dialog --title "RaspberryPi Card Builder v0.2" \
+--msgbox "\n ERROR: Can't find boot partition, neither as: ${device}1, nor as: ${device}p1. Exiting!" 0 0
+      exit 1
+    fi
+  else
+    bootp=${device}1
+    rootp=${device}2
+  fi  
+fi
+
+dialog --infobox "Formatting Partitions ${bootp} and ${rootp}..." 0 0; sleep 1;
+
+mkfs.vfat $bootp # Boot partition
+mkfs.ext4 $rootp # Partition that will hold rootfs.
+
+mkdir -p $rootfs
+
+dialog --infobox "Entering new filesystem at ${rootfs}..." 0 0; sleep 1;
+mount $rootp $rootfs
+cd $rootfs
+
+dialog --infobox "Bootstrapping into ${rootfs}..." 0 0; sleep 1;
+# To bootstrap our new system, we run debootstrap, passing it the target arch and suite, as well as a directory to work in.
+debootstrap --foreign --arch $arch $suite $rootfs $deb_mirror
+
+dialog --infobox "Second stage. Chrooting into ${rootfs}..." 0 0; sleep 1;
+# To be able to chroot into a target file system, the qemu emulator for the target CPU needs to be accessible from inside the chroot jail.
+cp /usr/bin/qemu-arm-static usr/bin/
+# Second stage - Run Post-install scripts.
+LANG=C chroot $rootfs /debootstrap/debootstrap --second-stage
+
+dialog --infobox "Configuring boot partition ${bootp} on ${bootfs}..." 0 0; sleep 1;
+mount $bootp $bootfs
+
+# By default, debootstrap creates a very minimal system, so we will want to extend it by installing more packages using apt-get install <package> as usual.
+# TODO: Use apt-setup? - deb-src?
+dialog --infobox "Configuring sources.list..." 0 0; sleep 1;
+echo "deb $deb_mirror $suite main contrib non-free
+" > etc/apt/sources.list
+
+#TODO: Configure /etc/inittab, and use USB serial console?
+dialog --infobox "Configuring bootloader..." 0 0; sleep 1;
+echo "dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait" > boot/cmdline.txt
+
+#The system you have just created needs a few tweaks so you can use it.
+dialog --infobox "Configuring fstab..." 0 0; sleep 1;
+echo "proc            /proc           proc    defaults        0       0
+/dev/mmcblk0p1  /boot           vfat    defaults        0       0
+" > etc/fstab
+
+#Configure networking for DHCP
+dialog --infobox "Setting hostname to ${hostname}..." 0 0; sleep 1;
+echo $hostname > etc/hostname
+
+dialog --infobox "Configuring network adapters..." 0 0; sleep 1;
+echo "auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+" > etc/network/interfaces
+
+# The (buggyish) analog audio driver for the SoC.
+dialog --infobox "Configuring kernel modules..." 0 0; sleep 1;
+echo "vchiq
+snd_bcm2835
+" >> etc/modules
+
+dialog --infobox "Configuring locales..." 0 0; sleep 1;
+echo "console-common	console-data/keymap/policy	select	Select keymap from full list
+console-common	console-data/keymap/full	select	de-latin1-nodeadkeys
+" > debconf.set
+
+dialog --infobox "Third stage. Installing packages..." 0 0; sleep 1;
+
+# Install things we need in order to grab and build firmware from github, and to work with the target remotely. Also, NTP as the date and time will be wrong, due to no RTC being on the board.
+echo "#!/bin/bash
+debconf-set-selections /debconf.set
+rm -f /debconf.set
+apt-get update 
+apt-get -y install git-core binutils ca-certificates locales console-common ntp ntpdate openssh-server less vim screen
+wget http://goo.gl/1BOfJ -O /usr/bin/rpi-update
+chmod +x /usr/bin/rpi-update
+mkdir -p /lib/modules/3.1.9+
+touch /boot/start.elf
+rpi-update
+echo \"root:raspberry\" | chpasswd
+sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
+rm -f /etc/udev/rules.d/70-persistent-net.rules
+rm -f third-stage
+" > third-stage
+chmod +x third-stage
+LANG=C chroot $rootfs /third-stage
+
+# Is this redundant?
+echo "deb $deb_mirror $suite main contrib non-free
+" > etc/apt/sources.list
+
+dialog --infobox "Cleaning up..." 0 0; sleep 1;
+
+# Tidy up afterward
+echo "#!/bin/bash
+apt-get clean
+rm -f cleanup
+" > cleanup
+chmod +x cleanup
+LANG=C chroot $rootfs /cleanup
+
+cd
+
+umount $bootp
+umount $rootp
+
+if [ "$image" != "" ]; then
+  kpartx -d $image
+  dialog --infobox "Created Image: ${image}." 0 0; sleep 2;
+fi
+
+dialog --title "RaspberryPi Card Builder v0.2" \
+--msgbox "\n Done!" 0 0
+
