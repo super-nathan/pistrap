@@ -4,29 +4,37 @@
 #James Bennet <github@james-bennet.com>, Klaus M Pfeiffer <klaus.m.pfeiffer@kmp.or.at>
 
 #Permission to use, copy, modify, and/or distribute this software for
-#any purpose with or without fee is hereby granted, provided that the 
+#any purpose with or without fee is hereby granted, provided that the
 #above copyright notice and this permission notice appear in all copies.
 
 #THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
 #WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES
 #OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE
-#FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY 
+#FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY
 #DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
 #IN AN CTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
 #OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+#******** GENERAL NOTES ********
 # pistrap.sh - Builds your own minimal (i.e. no GUI) RaspberryPi SD-card image. Images will fit in 1gb and take about 15m (on my crummy connection)
 # The root password on the created image will be "raspberry".
 
 # I take the "QEMU/debootstrap approach". See: http://wiki.debian.org/EmDebian/CrossDebootstrap and http://wiki.debian.org/EmDebian/DeBootstrap
 # Based on work by Klaus M Pfeiffer at http://blog.kmp.or.at/2012/05/build-your-own-raspberry-pi-image/
 
+#******** PACKAGING NOTES ********
+# I package for debian, but any dist that has debootstrap should work, as the apt-get's are done inside the debian chroots.
+
 # Ubuntu doesnt have Xdialog :( - By the way, we supply size 0 so they autosize. May not be right for some text entry fields but meh.
+
+#On the host, you need to get some build dependencies first:
+#sudo apt-get -y install binfmt-support qemu qemu-user-static debootstrap kpartx lvm2 dosfstools git-core binutils ca-certificates ntp ntpdate openssh-server less vim screen multistrap schroot fakechroot cdebootstrap minicom bash dialog
 
 function main
 {
 # 20 simple steps
 init
+checkRequirements
 sayHello
 getDevice
 getBuildroot
@@ -35,7 +43,6 @@ getArch
 getMirror
 getHostname
 sayFinalWarning
-checkRequirements
 checkDevice
 partitionDevice
 mountDevice
@@ -158,7 +165,7 @@ case $retval in
 esac
 }
 
-# Mirror from which the necessary .deb packages will be downloaded. Choose any mirror, as long as it has the architecture you are trying to bootstrap. See http://www.debian.org/mirror/list for the list of available Debian mirrors. 
+# Mirror from which the necessary .deb packages will be downloaded. Choose any mirror, as long as it has the architecture you are trying to bootstrap. See http://www.debian.org/mirror/list for the list of available Debian mirrors.
 
 # I have only currently tested debian (wheezy/armel) from http://http.debian.net/debian.
 # Raspbian (wheezy/armhf) from  should work too. I could not get emdebian (squeeze/armel) from http://ftp.uk.debian.org/emdebian/grip to work.
@@ -223,10 +230,6 @@ if [ $EUID -ne 0 ]; then
 dialog --title "RaspberryPi Card Builder v0.2" \
 --msgbox "\n ERROR: This tool must be run with superuser rights!" 0 0 # Because debootstrap will create device nodes (using mknod) as well as chroot into the newly created system
   exit 1
-else
-dialog --infobox "Installing build dependencies..." 0 0; sleep 1; # TODO: progress ticker
-# On the host, you need to get some build dependencies first.
-sudo apt-get -y install binfmt-support qemu qemu-user-static debootstrap kpartx lvm2 dosfstools git-core binutils ca-certificates ntp ntpdate openssh-server less vim screen multistrap schroot fakechroot cdebootstrap minicom bash dialog
 fi
 }
 
@@ -294,7 +297,7 @@ dialog --title "RaspberryPi Card Builder v0.2" \
   else
     bootp=${device}1
     rootp=${device}2
-  fi  
+  fi
 fi
 }
 
@@ -343,7 +346,7 @@ echo "proc            /proc           proc    defaults        0       0
 
 function configureSystem
 {
-# By default, debootstrap creates a very minimal system, so we will want to extend it by installing more packages using apt-get install <package> as usual.
+# By default, debootstrap creates a very minimal system, so we will want to extend it by installing more packages.
 # TODO: Use apt-setup? - deb-src?
 dialog --infobox "Configuring sources.list..." 0 0; sleep 1;
 echo "deb $deb_mirror $suite main contrib non-free
@@ -381,7 +384,7 @@ dialog --infobox "Third stage. Installing packages..." 0 0; sleep 1;
 echo "#!/bin/bash
 debconf-set-selections /debconf.set
 rm -f /debconf.set
-apt-get update 
+apt-get update
 apt-get -y install git-core binutils ca-certificates locales console-common ntp ntpdate openssh-server less vim screen
 wget http://goo.gl/1BOfJ -O /usr/bin/rpi-update
 chmod +x /usr/bin/rpi-update
