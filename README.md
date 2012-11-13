@@ -33,4 +33,4 @@ TODO:
 * Configure users and passwords.
 * Configure boot paramaters.
 * Make more robust.
-
+* Make it work on non-debian systems that have debootstrap
