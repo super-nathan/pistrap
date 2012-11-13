@@ -1,3 +1,9 @@
+pistrap (0.1ubuntu1) UNRELEASED; urgency=low
+
+  * Tagged v0.1
+
+ -- James Bennet <jamesb@bsg75>  Tue, 13 Nov 2012 18:53:49 +0000
+
 pistrap (0.1) unstable; urgency=low
 
   * Initial Release.
