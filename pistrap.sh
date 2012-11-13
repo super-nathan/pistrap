@@ -178,7 +178,7 @@ trap "rm -f $tempfile" 0 1 2 5 15
 dialog --clear --title "RaspberryPi Card Builder v0.2" \
         --menu "Please choose a mirror: " 0 0 0 \
         "http://http.debian.net/debian"  "http://http.debian.net/debian" \
-        "http://downloads.raspberrypi.org/raspbian/raspbian/" "http://downloads.raspberrypi.org/raspbian/raspbian/" 2> $tempfile
+        "http://archive.raspbian.org/raspbian" "http://archive.raspbian.org/raspbian" 2> $tempfile
 
 retval=$?
 deb_mirror=`cat $tempfile`
@@ -319,13 +319,14 @@ cd $rootfs
 
 dialog --infobox "Bootstrapping into ${rootfs}..." 0 0; sleep 1;
 # To bootstrap our new system, we run debootstrap, passing it the target arch and suite, as well as a directory to work in.
-debootstrap --foreign --arch $arch $suite $rootfs $deb_mirror
+# FIXME: We do --no-check-certificate and --no-check-gpg to make raspbian work.
+debootstrap --no-check-certificate --no-check-gpg --foreign --arch $arch $suite $rootfs $deb_mirror
 
 dialog --infobox "Second stage. Chrooting into ${rootfs}..." 0 0; sleep 1;
 # To be able to chroot into a target file system, the qemu emulator for the target CPU needs to be accessible from inside the chroot jail.
 cp /usr/bin/qemu-arm-static usr/bin/
 # Second stage - Run Post-install scripts.
-LANG=C chroot $rootfs /debootstrap/debootstrap --second-stage
+LANG=C chroot $rootfs /debootstrap/debootstrap --no-check-certificate --no-check-gpg --second-stage
 }
 
 function configureBoot
