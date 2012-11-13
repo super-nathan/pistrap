@@ -77,7 +77,7 @@ function getDevice
 tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
 trap "rm -f $tempfile" 0 1 2 5 15
 
-dialog --title "Enter path to block device to format" --clear \
+dialog --title "Enter path to block device to format, or CANCEL to make an image." --clear \
         --inputbox "Device path:" 0 0 2> $tempfile
 
 retval=$?
@@ -87,8 +87,8 @@ case $retval in
   0)
      dialog --infobox "Setting device: ${device}..." 0 0; sleep 1;;
   1)
-	# TODO: We dont allow making a .img right now as its buggy.
-    exit 1;;
+    $device=""
+	dialog --infobox "WARNING: No block device given, creating image instead..." 0 0; sleep 2;;  # You can dd this to a block device yourself later.
   255)
       exit 1;;
 esac
@@ -240,19 +240,19 @@ dialog --title "RaspberryPi Card Builder v0.2" \
 --msgbox "\n ERROR: Device: ${device} is not a block device!" 0 0
   getDevice
 else
-dialog --infobox "Device: ${device} OK..." 0 0; sleep 1;
+dialog --infobox "Device: ${device} OK..." 0 0; sleep 2;
 fi
 }
 
 function partitionDevice
 {
 if [ "$device" == "" ]; then
-  dialog --infobox "WARNING: No block device given, creating image instead." 0 0; sleep 1; # You can dd this to a block device yourself later.
+  dialog --infobox "WARNING: No block device given, creating image instead." 0 0; sleep 2;
   mkdir -p $buildenv
   image="${buildenv}/rpi_basic_${suite}_${mydate}.img"
   dd if=/dev/zero of=$image bs=1MB count=1000
   device=`losetup -f --show $image`
-  dialog --infobox "Image: ${image} created and mounted as: ${device}" 0 0; sleep 1;
+  dialog --infobox "Image: ${image} created and mounted as: ${device}" 0 0; sleep 2;
 else
   dialog --infobox "Partitioning Device ${device}" 0 0; sleep 1;
   dd if=/dev/zero of=$device bs=512 count=1
@@ -277,7 +277,7 @@ EOF
 
 function mountDevice
 {
-dialog --infobox "Mounting Partitions..." 0 0; sleep 1;
+dialog --infobox "Mounting Partitions..." 0 0; sleep 2;
 
 if [ "$image" != "" ]; then
   losetup -d $device
@@ -317,12 +317,12 @@ dialog --infobox "Entering new filesystem at ${rootfs}..." 0 0; sleep 1;
 mount $rootp $rootfs
 cd $rootfs
 
-dialog --infobox "Bootstrapping into ${rootfs}..." 0 0; sleep 1;
+dialog --infobox "Bootstrapping into ${rootfs}..." 0 0; sleep 2;
 # To bootstrap our new system, we run debootstrap, passing it the target arch and suite, as well as a directory to work in.
 # FIXME: We do --no-check-certificate and --no-check-gpg to make raspbian work.
 debootstrap --no-check-certificate --no-check-gpg --foreign --arch $arch $suite $rootfs $deb_mirror
 
-dialog --infobox "Second stage. Chrooting into ${rootfs}..." 0 0; sleep 1;
+dialog --infobox "Second stage. Chrooting into ${rootfs}..." 0 0; sleep 2;
 # To be able to chroot into a target file system, the qemu emulator for the target CPU needs to be accessible from inside the chroot jail.
 cp /usr/bin/qemu-arm-static usr/bin/
 # Second stage - Run Post-install scripts.
@@ -379,7 +379,7 @@ console-common	console-data/keymap/full	select	de-latin1-nodeadkeys
 
 function thirdStatge
 {
-dialog --infobox "Third stage. Installing packages..." 0 0; sleep 1;
+dialog --infobox "Third stage. Installing packages..." 0 0; sleep 2;
 
 # Install things we need in order to grab and build firmware from github, and to work with the target remotely. Also, NTP as the date and time will be wrong, due to no RTC being on the board.
 echo "#!/bin/bash
@@ -407,7 +407,7 @@ echo "deb $deb_mirror $suite main contrib non-free
 
 function cleanUp
 {
-dialog --infobox "Cleaning up..." 0 0; sleep 1;
+dialog --infobox "Cleaning up..." 0 0; sleep 2;
 
 # Tidy up afterward
 echo "#!/bin/bash
