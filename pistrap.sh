@@ -249,8 +249,8 @@ function partitionDevice
 if [ "$device" == "" ]; then
   dialog --infobox "WARNING: No block device given, creating image instead." 0 0; sleep 2;
   mkdir -p $buildenv
-  image="${buildenv}/rpi_basic_${suite}_${mydate}.img"
-  dd if=/dev/zero of=$image bs=1MB count=1000
+  image="${buildenv}/pistrap_${suite}_{$arch}_${mydate}.img"
+  dd if=/dev/zero of=$image bs=1MB count=1000 > /dev/null 2>&1
   device=`losetup -f --show $image`
   dialog --infobox "Image: ${image} created and mounted as: ${device}" 0 0; sleep 2;
 else
@@ -305,8 +305,8 @@ function formatDevice
 {
 dialog --infobox "Formatting Partitions ${bootp} and ${rootp}..." 0 0; sleep 1;
 
-mkfs.vfat $bootp # Boot partition
-mkfs.ext4 $rootp # Partition that will hold rootfs.
+mkfs.vfat $bootp > /dev/null 2>&1 # Boot partition
+mkfs.ext4 $rootp > /dev/null 2>&1 # Partition that will hold rootfs.
 
 mkdir -p $rootfs
 }
@@ -381,13 +381,14 @@ function thirdStatge
 {
 dialog --infobox "Third stage. Installing packages..." 0 0; sleep 2;
 
-# Install things we need in order to grab and build firmware from github, and to work with the target remotely. Also, NTP as the date and time will be wrong, due to no RTC being on the board.
+# Install things we need in order to grab and build firmware from github, and to work with the target remotely. Also, NTP as the date and time will be wrong, due to no RTC being on the board. This is important, as if you get errors relating to certificates, then the problem is likely due to one of two things. Either the time is set incorrectly on your Raspberry Pi, which you can fix by simply setting the time using NTP. The other possible issue is that you might not have the ca-certificates package installed, and so GitHub's SSL certificate isn't trusted.
+
 echo "#!/bin/bash
 debconf-set-selections /debconf.set
 rm -f /debconf.set
-apt-get update
-apt-get -y install git-core binutils ca-certificates locales console-common ntp ntpdate openssh-server less vim screen
-wget http://goo.gl/1BOfJ -O /usr/bin/rpi-update
+apt-get -qq update
+apt-get -qq -y install git-core binutils ca-certificates locales console-common ntp ntpdate openssh-server less vim screen
+wget  -q http://raw.github.com/Hexxeh/rpi-update/master/rpi-update -O /usr/bin/rpi-update
 chmod +x /usr/bin/rpi-update
 mkdir -p /lib/modules/3.1.9+
 touch /boot/start.elf
@@ -411,7 +412,7 @@ dialog --infobox "Cleaning up..." 0 0; sleep 2;
 
 # Tidy up afterward
 echo "#!/bin/bash
-apt-get clean
+apt-get -qq clean
 rm -f cleanup
 " > cleanup
 chmod +x cleanup
