@@ -22,6 +22,8 @@
 # I take the "QEMU/debootstrap approach". See: http://wiki.debian.org/EmDebian/CrossDebootstrap and http://wiki.debian.org/EmDebian/DeBootstrap
 # Based on work by Klaus M Pfeiffer at http://blog.kmp.or.at/2012/05/build-your-own-raspberry-pi-image/
 
+# Report any issues using github.
+
 #******** PACKAGING NOTES ********
 # I package for debian, but any dist that has debootstrap should work, as the apt-get's are done inside the debian chroots.
 
