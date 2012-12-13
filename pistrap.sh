@@ -30,7 +30,7 @@
 # Ubuntu doesnt have Xdialog :( - By the way, we supply size 0 so they autosize. May not be right for some text entry fields but meh.
 
 #On the host, you need to get some build dependencies first:
-#sudo apt-get -y install binfmt-support qemu qemu-user-static debootstrap kpartx lvm2 dosfstools git-core binutils ca-certificates ntp ntpdate openssh-server less vim screen multistrap schroot fakechroot cdebootstrap minicom bash dialog
+#sudo apt-get -y install binfmt-support qemu qemu-user-static debootstrap kpartx lvm2 dosfstools git-core binutils ca-certificates ntp ntpdate openssh-server less vim screen multistrap schroot fakechroot cdebootstrap minicom bash dialog debhelper devscripts
 
 function main
 {
@@ -250,14 +250,14 @@ function partitionDevice
 {
 if [ "$device" == "" ]; then
   dialog --infobox "WARNING: No block device given, creating image instead." 0 0; sleep 2;
-  mkdir -p $buildenv
-  image="${buildenv}/pistrap_${suite}_{$arch}_${mydate}.img"
-  dd if=/dev/zero of=$image bs=1MB count=1000 > /dev/null 2>&1
+  mkdir -p $buildenv  &>> /var/log/pistrap.log
+  image="${buildenv}/pistrap_${suite}_${arch}_${mydate}.img"
+  dd if=/dev/zero of=$image bs=1MB count=1000  &>> /var/log/pistrap.log
   device=`losetup -f --show $image`
   dialog --infobox "Image: ${image} created and mounted as: ${device}" 0 0; sleep 2;
 else
   dialog --infobox "Partitioning Device ${device}" 0 0; sleep 1;
-  dd if=/dev/zero of=$device bs=512 count=1
+  dd if=/dev/zero of=$device bs=512 count=1 &>> /var/log/pistrap.log
 fi
 
 fdisk $device << EOF
@@ -282,7 +282,7 @@ function mountDevice
 dialog --infobox "Mounting Partitions..." 0 0; sleep 2;
 
 if [ "$image" != "" ]; then
-  losetup -d $device
+  losetup -d $device &>> /var/log/pistrap.log
   device=`kpartx -va $image | sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
   device="/dev/mapper/${device}"
   bootp=${device}p1
@@ -307,34 +307,34 @@ function formatDevice
 {
 dialog --infobox "Formatting Partitions ${bootp} and ${rootp}..." 0 0; sleep 1;
 
-mkfs.vfat $bootp > /dev/null 2>&1 # Boot partition
-mkfs.ext4 $rootp > /dev/null 2>&1 # Partition that will hold rootfs.
+mkfs.vfat $bootp &>> /var/log/pistrap.log # Boot partition
+mkfs.ext4 $rootp &>> /var/log/pistrap.log # Partition that will hold rootfs.
 
-mkdir -p $rootfs
+mkdir -p $rootfs &>> /var/log/pistrap.log
 }
 
 function bootstrapDevice
 {
 dialog --infobox "Entering new filesystem at ${rootfs}..." 0 0; sleep 1;
-mount $rootp $rootfs
-cd $rootfs
+mount $rootp $rootfs  &>> /var/log/pistrap.log
+cd $rootfs  &>> /var/log/pistrap.log
 
 dialog --infobox "Bootstrapping into ${rootfs}..." 0 0; sleep 2;
 # To bootstrap our new system, we run debootstrap, passing it the target arch and suite, as well as a directory to work in.
 # FIXME: We do --no-check-certificate and --no-check-gpg to make raspbian work.
-debootstrap --no-check-certificate --no-check-gpg --foreign --arch $arch $suite $rootfs $deb_mirror
+debootstrap --no-check-certificate --no-check-gpg --foreign --arch $arch $suite $rootfs $deb_mirror  &>> /var/log/pistrap.log
 
 dialog --infobox "Second stage. Chrooting into ${rootfs}..." 0 0; sleep 2;
 # To be able to chroot into a target file system, the qemu emulator for the target CPU needs to be accessible from inside the chroot jail.
-cp /usr/bin/qemu-arm-static usr/bin/
+cp /usr/bin/qemu-arm-static usr/bin/  &>> /var/log/pistrap.log
 # Second stage - Run Post-install scripts.
-LANG=C chroot $rootfs /debootstrap/debootstrap --no-check-certificate --no-check-gpg --second-stage
+LANG=C chroot $rootfs /debootstrap/debootstrap --no-check-certificate --no-check-gpg --second-stage  &>> /var/log/pistrap.log
 }
 
 function configureBoot
 {
 dialog --infobox "Configuring boot partition ${bootp} on ${bootfs}..." 0 0; sleep 1;
-mount $bootp $bootfs
+mount $bootp $bootfs  &>> /var/log/pistrap.log
 
 #TODO: Configure /etc/inittab, and use USB serial console?
 dialog --infobox "Configuring bootloader..." 0 0; sleep 1;
@@ -400,8 +400,8 @@ sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 rm -f third-stage
 " > third-stage
-chmod +x third-stage
-LANG=C chroot $rootfs /third-stage
+chmod +x third-stage  &>> /var/log/pistrap.log
+LANG=C chroot $rootfs /third-stage  &>> /var/log/pistrap.log
 
 # Is this redundant?
 echo "deb $deb_mirror $suite main contrib non-free
@@ -417,16 +417,16 @@ echo "#!/bin/bash
 apt-get -qq clean
 rm -f cleanup
 " > cleanup
-chmod +x cleanup
-LANG=C chroot $rootfs /cleanup
+chmod +x cleanup &>> /var/log/pistrap.log
+LANG=C chroot $rootfs /cleanup &> /var/log/pistrap.log
 
 cd
 
-umount $bootp
-umount $rootp
+umount $bootp &>> /var/log/pistrap.log
+umount $rootp &>> /var/log/pistrap.log
 
 if [ "$image" != "" ]; then
-  kpartx -d $image
+  kpartx -d $image &>> /var/log/pistrap.log
   dialog --infobox "Created Image: ${image}." 0 0; sleep 2;
 fi
 }
