@@ -418,7 +418,7 @@ apt-get -qq clean
 rm -f cleanup
 " > cleanup
 chmod +x cleanup &>> /var/log/pistrap.log
-LANG=C chroot $rootfs /cleanup &> /var/log/pistrap.log
+LANG=C chroot $rootfs /cleanup &>> /var/log/pistrap.log
 
 cd
 
