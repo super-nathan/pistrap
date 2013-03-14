@@ -493,8 +493,8 @@ device=`cat $tempfile`
 
 case $retval in
   0)
-     dialog --infobox "Writing image to: ${device}..." 0 0; sleep 1;;
-	dd bs=1M if=$image of=$device
+     dialog --infobox "Writing image to: ${device}..." 0 0; sleep 1;
+	dd bs=1M if=$image of=$device;;
   1)
       sayDone;;
   255)
