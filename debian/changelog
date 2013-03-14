@@ -1,16 +1,30 @@
-pistrap (0.1ubuntu3) UNRELEASED; urgency=low
+pistrap (0.3) unstable; urgency=low
 
   [ James Bennet ]
-  * Tagged v0.1
+  * Tagged v0.3
+
+  [ James Bennet ]
+  * Bump following quick sprint of changes which added features to fix
+    TODOs, and improved docs and packaging
+
+ -- James Bennet <github@james-bennet.com>  Thu, 14 Mar 2013 21:07:15 +0000
+
+pistrap (0.2) unstable; urgency=low
+
+  [ James Bennet ]
   * Tagged v0.2
 
-  [ jamesb ]
+  [ James Bennet ]
   * Added debug. Changed packaging and Fixed bug #9
 
- -- jamesb <jamesb@ubuntu>  Thu, 13 Dec 2012 22:36:31 +0000
+ -- James Bennet <github@james-bennet.com>  Thu, 13 Dec 2012 22:36:31 +0000
 
 pistrap (0.1) unstable; urgency=low
 
+  [ James Bennet ]
+  * Tagged v0.1
+
+  [ James Bennet ]
   * Initial Release.
 
  -- James Bennet <github@james-bennet.com>  Tue, 13 Nov 2012 11:55:13 +0000
