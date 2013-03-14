@@ -34,8 +34,9 @@ TODO:
 * Support extremely small installs using minibase variant and /or emdebian?
 * Due to a known problem with Raspbian, we dont check GPG keys when using debootstrap. We probably should fix this.
 * A page of "qemu: Unsupported syscall" is a known problem, though it seems to work OK. We probably should fix this.
-* Custom package selection
 * Cache packages and workdirs, for fast rebuilds.
-* Configure users and passwords.
-* Configure boot paramaters.
-* Make more robust.
+
+NEW:
+* Now supports custom package selection
+* Configureable root password.
+* Configured USB serial console for headless use.
