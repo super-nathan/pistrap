@@ -24,17 +24,13 @@
 
 # Report any issues using github.
 
+# To test your image on x86, follow http://xecdesign.com/qemu-emulating-raspberry-pi-the-easy-way/
+
 #******** PACKAGING NOTES ********
 # I package for debian, but any dist that has debootstrap should work, as the apt-get's are done inside the debian chroots.
 
-# Ubuntu doesnt have Xdialog :( - By the way, we supply size 0 so they autosize. May not be right for some text entry fields but meh.
-
-#On the host, you need to get some build dependencies first:
-#sudo apt-get -y install binfmt-support qemu qemu-user-static debootstrap kpartx lvm2 dosfstools git-core binutils ca-certificates ntp ntpdate openssh-server less vim screen multistrap schroot fakechroot cdebootstrap minicom bash dialog debhelper devscripts
-
 function main
 {
-# 20 simple steps
 init
 checkRequirements
 sayHello
@@ -44,6 +40,8 @@ getSuite
 getArch
 getMirror
 getHostname
+getPassword
+pickPackages
 sayFinalWarning
 checkDevice
 partitionDevice
@@ -62,6 +60,8 @@ function init
 bootsize="64M" # Boot partition size on RPI.
 mydate=`date +%Y%m%d`
 image=""
+password="raspberry"
+choices=""
 }
 
 function sayHello
@@ -117,7 +117,7 @@ case $retval in
   1)
     getDevice;;
   255)
-    getDevice;;
+      exit 1;;
 esac
 }
 
@@ -139,7 +139,7 @@ case $retval in
   1)
     getBuildroot;;
   255)
-    getBuildroot;;
+      exit 1;;
 esac
 }
 
@@ -163,7 +163,7 @@ case $retval in
   1)
     getSuite;;
   255)
-    getSuite;;
+      exit 1;;
 esac
 }
 
@@ -191,7 +191,7 @@ case $retval in
   1)
    getArch;;
   255)
-    getArch;;
+      exit 1;;
 esac
 }
 
@@ -213,8 +213,46 @@ case $retval in
   1)
     getMirror;;
   255)
-    getMirror;;
+      exit 1;;
 esac
+}
+
+# Let the user type in the chosen root password
+function getPassword
+{
+tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
+trap "rm -f $tempfile" 0 1 2 5 15
+
+dialog --title "Enter root password:" --clear \
+        --inputbox "Root password:" 0 0 2> $tempfile
+
+retval=$?
+password=`cat $tempfile`
+
+case $retval in
+  0)
+     dialog --infobox "Setting root password: ${password}..." 0 0; sleep 1;;
+  1)
+    $password="raspberry"
+	dialog --infobox "WARNING: No root password given! - Setting default of 'raspberry'.." 0 0; sleep 2;; 
+  255)
+      exit 1;;
+esac
+}
+
+function pickPackages
+{
+pkglist=""
+n=1
+for pkg in $(cat packages.list)
+do
+        pkglist="$pkglist $pkg $n off"
+        n=$[n+1]
+done
+
+echo $pkglist
+
+choices=`dialog --stdout --title "Choose Packages" --clear --checklist 'Choose Packages:' 80 40 20 $pkglist`
 }
 
 function sayFinalWarning
@@ -294,7 +332,7 @@ else
     if ! [ -b ${bootp} ]; then
 dialog --title "RaspberryPi Card Builder v0.2" \
 --msgbox "\n ERROR: Can't find boot partition, neither as: ${device}1, nor as: ${device}p1. Exiting!" 0 0
-      exit 1 # TODO: retry?
+      exit 1
     fi
   else
     bootp=${device}1
@@ -336,7 +374,6 @@ function configureBoot
 dialog --infobox "Configuring boot partition ${bootp} on ${bootfs}..." 0 0; sleep 1;
 mount $bootp $bootfs  &>> /var/log/pistrap.log
 
-#TODO: Configure /etc/inittab, and use USB serial console?
 dialog --infobox "Configuring bootloader..." 0 0; sleep 1;
 echo "dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait" > boot/cmdline.txt
 
@@ -350,7 +387,6 @@ echo "proc            /proc           proc    defaults        0       0
 function configureSystem
 {
 # By default, debootstrap creates a very minimal system, so we will want to extend it by installing more packages.
-# TODO: Use apt-setup? - deb-src?
 dialog --infobox "Configuring sources.list..." 0 0; sleep 1;
 echo "deb $deb_mirror $suite main contrib non-free
 " > etc/apt/sources.list
@@ -373,6 +409,10 @@ echo "vchiq
 snd_bcm2835
 " >> etc/modules
 
+# Will spawn consoles on USB serial adapter for headless use.
+dialog --infobox "Configuring USB serial console..." 0 0; sleep 1;
+echo "T0:23:respawn:/sbin/getty -L ttyUSB0 115200 vt100" >> etc/inittab
+
 dialog --infobox "Configuring locales..." 0 0; sleep 1;
 echo "console-common	console-data/keymap/policy	select	Select keymap from full list
 console-common	console-data/keymap/full	select	de-latin1-nodeadkeys
@@ -389,13 +429,13 @@ echo "#!/bin/bash
 debconf-set-selections /debconf.set
 rm -f /debconf.set
 apt-get -qq update
-apt-get -qq -y install git-core binutils ca-certificates locales console-common ntp ntpdate openssh-server less vim screen
+apt-get -qq -y install git-core binutils ca-certificates locales console-common ntp ntpdate openssh-server $choices
 wget  -q http://raw.github.com/Hexxeh/rpi-update/master/rpi-update -O /usr/bin/rpi-update
 chmod +x /usr/bin/rpi-update
 mkdir -p /lib/modules/3.1.9+
 touch /boot/start.elf
 rpi-update
-echo \"root:raspberry\" | chpasswd
+echo \"root:$password\" | chpasswd
 sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 rm -f third-stage
