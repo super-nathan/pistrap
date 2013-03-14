@@ -19,6 +19,11 @@ The program is wizard driven (curses-ey) and you specify the following:
 * The target architecture (i.e. armel, armhf), that you want to bootstrap. - NOTE: there is no sanity checking here. i.e. stock Debian armhf wont boot on the Pi.
 * A mirror from which the necessary .deb packages will be downloaded. Choose any mirror, as long as it has the architecture you are trying to bootstrap. See http://www.debian.org/mirror/list for the list of available Debian mirrors. NOTE: I have only currently tested debian (wheezy/armel) from http://http.debian.net/debian. Raspbian (wheezy/armhf) from http://archive.raspbian.org/raspbian should work too. (I could not get emdebian (squeeze/armel) from http://ftp.uk.debian.org/emdebian/grip to work).
 * The target hostname
+* 
+
+TO USE
+* To test your image on x86, follow http://xecdesign.com/qemu-emulating-raspberry-pi-the-easy-way/
+* To DD an image: sudo dd bs=1m if=<your image file>.img of=/dev/<sdcard>
 
 TIPS:
 * The root password on the created image will be "raspberry".
