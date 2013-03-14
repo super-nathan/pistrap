@@ -23,7 +23,7 @@ The program is wizard driven (curses-ey) and you specify the following:
 
 TO USE
 * To test your image on x86, follow http://xecdesign.com/qemu-emulating-raspberry-pi-the-easy-way/
-* To DD an image: sudo dd bs=1m if=<your image file>.img of=/dev/<sdcard>
+* To DD an image: sudo dd bs=1m if=[your image file].img of=/dev/[sdcard]
 
 TIPS:
 * The root password on the created image will be "raspberry".
