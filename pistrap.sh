@@ -52,6 +52,9 @@ configureBoot
 configureSystem
 thirdStatge
 cleanUp
+if [ "${device}" == "" ]; then
+	ddImage
+fi
 sayDone
 }
 
@@ -475,6 +478,28 @@ function sayDone
 {
 dialog --title "RaspberryPi Card Builder v0.2" \
 --msgbox "\n Done!" 0 0
+}
+
+function ddImage
+{
+tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
+trap "rm -f $tempfile" 0 1 2 5 15
+
+dialog --title "Enter path to block device to write image to, if you wish." --clear \
+        --inputbox "Device path:" 0 0 2> $tempfile
+
+retval=$?
+device=`cat $tempfile`
+
+case $retval in
+  0)
+     dialog --infobox "Writing image to: ${device}..." 0 0; sleep 1;;
+	dd bs=1m if=$image of=$device
+  1)
+      sayDone;;
+  255)
+      exit 1;;
+esac
 }
 
 #RUN
