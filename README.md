@@ -8,9 +8,9 @@ We take the "QEMU/debootstrap approach". See: http://wiki.debian.org/EmDebian/Cr
 Images will fit in ~350mb and take about 15m (on my crummy ADSL connection)
 
 CREDITS:
-*Based on work by Klaus M Pfeiffer <klaus.m.pfeiffer@kmp.or.at> at http://blog.kmp.or.at/2012/05/build-your-own-raspberry-pi-image/.
+* Based on work by Klaus M Pfeiffer <klaus.m.pfeiffer@kmp.or.at> at http://blog.kmp.or.at/2012/05/build-your-own-raspberry-pi-image/.
 * I added a lot more customisability, fixed lots of bugs, and added a UI.
-*Thanks to Nathan Weber <supernathansunshine@gmaill.com>, and the PiBang Linux project, I have upstreamed some of the fixes in thier fork.
+* Thanks to Nathan Weber <supernathansunshine@gmaill.com>, and the PiBang Linux project, I have upstreamed some of the fixes in thier fork.
 
 INSTALL:
 
