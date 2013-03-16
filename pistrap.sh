@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #Copyright (c) 2012
-#James Bennet <github@james-bennet.com>, Klaus M Pfeiffer <klaus.m.pfeiffer@kmp.or.at>
+#James Bennet <github@james-bennet.com>, Klaus M Pfeiffer <klaus.m.pfeiffer@kmp.or.at>, "Super" Nathan Weber <supernathansunshine@gmail.com>
 
 #Permission to use, copy, modify, and/or distribute this software for
 #any purpose with or without fee is hereby granted, provided that the
@@ -50,7 +50,8 @@ formatDevice
 bootstrapDevice
 configureBoot
 configureSystem
-thirdStatge
+networking
+thirdStage
 cleanUp
 if [ "${device}" == "" ]; then
 	ddImage
@@ -61,10 +62,17 @@ sayDone
 function init
 {
 bootsize="64M" # Boot partition size on RPI.
+size=1000 # Size of image to create in MB. You will need to set this higher if you want a larger selection.
 mydate=`date +%Y%m%d`
+mytime=`date +%H%M`
 image=""
 password="raspberry"
 choices=""
+echo "
+***************************
+ Starting build at $mytime on $mydate.
+***************************
+" > /var/log/pistrap.log
 }
 
 function sayHello
@@ -247,7 +255,7 @@ function pickPackages
 {
 pkglist=""
 n=1
-for pkg in $(cat packages.list)
+for pkg in $(cat  /etc/pistrap/packages.list)
 do
         pkglist="$pkglist $pkg $n off"
         n=$[n+1]
@@ -293,7 +301,7 @@ if [ "$device" == "" ]; then
   dialog --infobox "WARNING: No block device given, creating image instead." 0 0; sleep 2;
   mkdir -p $buildenv  &>> /var/log/pistrap.log
   image="${buildenv}/pistrap_${suite}_${arch}_${mydate}.img"
-  dd if=/dev/zero of=$image bs=1MB count=1000  &>> /var/log/pistrap.log
+  dd if=/dev/zero of=$image bs=1MB count=$size  &>> /var/log/pistrap.log
   device=`losetup -f --show $image`
   dialog --infobox "Image: ${image} created and mounted as: ${device}" 0 0; sleep 2;
 else
@@ -346,7 +354,7 @@ fi
 
 function formatDevice
 {
-dialog --infobox "Formatting Partitions ${bootp} and ${rootp}..." 0 0; sleep 1;
+dialog --infobox "Formatting Partitions ${bootp} and ${rootp}..." 0 0; sleep 3;
 
 mkfs.vfat $bootp &>> /var/log/pistrap.log # Boot partition
 mkfs.ext4 $rootp &>> /var/log/pistrap.log # Partition that will hold rootfs.
@@ -363,13 +371,13 @@ cd $rootfs  &>> /var/log/pistrap.log
 dialog --infobox "Bootstrapping into ${rootfs}..." 0 0; sleep 2;
 # To bootstrap our new system, we run debootstrap, passing it the target arch and suite, as well as a directory to work in.
 # FIXME: We do --no-check-certificate and --no-check-gpg to make raspbian work.
-debootstrap --no-check-certificate --no-check-gpg --foreign --arch $arch $suite $rootfs $deb_mirror  &>> /var/log/pistrap.log
+debootstrap --no-check-certificate --no-check-gpg --foreign --arch $arch $suite $rootfs $deb_mirror  2>&1 | tee -a /var/log/pistrap.log
 
 dialog --infobox "Second stage. Chrooting into ${rootfs}..." 0 0; sleep 2;
 # To be able to chroot into a target file system, the qemu emulator for the target CPU needs to be accessible from inside the chroot jail.
 cp /usr/bin/qemu-arm-static usr/bin/  &>> /var/log/pistrap.log
 # Second stage - Run Post-install scripts.
-LANG=C chroot $rootfs /debootstrap/debootstrap --no-check-certificate --no-check-gpg --second-stage  &>> /var/log/pistrap.log
+LANG=C chroot $rootfs /debootstrap/debootstrap --no-check-certificate --no-check-gpg --second-stage  2>&1 | tee -a /var/log/pistrap.log
 }
 
 function configureBoot
@@ -378,13 +386,29 @@ dialog --infobox "Configuring boot partition ${bootp} on ${bootfs}..." 0 0; slee
 mount $bootp $bootfs  &>> /var/log/pistrap.log
 
 dialog --infobox "Configuring bootloader..." 0 0; sleep 1;
-echo "dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait" > boot/cmdline.txt
+echo "dwc_otg.lpm_enable=0 console=ttyUSB0,115200 kgdboc=ttyUSB0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait" > boot/cmdline.txt
 
 #The system you have just created needs a few tweaks so you can use it.
 dialog --infobox "Configuring fstab..." 0 0; sleep 1;
 echo "proc            /proc           proc    defaults        0       0
 /dev/mmcblk0p1  /boot           vfat    defaults        0       0
 " > etc/fstab
+}
+
+function networking
+{
+#Configure networking for DHCP
+dialog --infobox "Setting hostname to ${hostname}..." 0 0; sleep 2;
+echo $hostname > etc/hostname
+echo "127.0.1.1\t$hostname\n" >> etc/hosts
+
+dialog --infobox "Configuring network adapters..." 0 0; sleep 2;
+echo "auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+" > etc/network/interfaces
 }
 
 function configureSystem
@@ -394,23 +418,27 @@ dialog --infobox "Configuring sources.list..." 0 0; sleep 1;
 echo "deb $deb_mirror $suite main contrib non-free
 " > etc/apt/sources.list
 
-#Configure networking for DHCP
-dialog --infobox "Setting hostname to ${hostname}..." 0 0; sleep 1;
-echo $hostname > etc/hostname
-
-dialog --infobox "Configuring network adapters..." 0 0; sleep 1;
-echo "auto lo
-iface lo inet loopback
-
-auto eth0
-iface eth0 inet dhcp
-" > etc/network/interfaces
-
 # The (buggyish) analog audio driver for the SoC.
 dialog --infobox "Configuring kernel modules..." 0 0; sleep 1;
 echo "vchiq
 snd_bcm2835
 " >> etc/modules
+
+
+echo "pcm.mmap0 {
+    type mmap_emul;
+    slave {
+      pcm \"hw:0,0\";
+    }
+}
+
+pcm.!default {
+  type plug;
+  slave {
+    pcm mmap0;
+  }
+}
+" > etc/asound.conf
 
 # Will spawn consoles on USB serial adapter for headless use.
 dialog --infobox "Configuring USB serial console..." 0 0; sleep 1;
@@ -422,9 +450,15 @@ console-common	console-data/keymap/full	select	de-latin1-nodeadkeys
 " > debconf.set
 }
 
-function thirdStatge
+function thirdStage
 {
 dialog --infobox "Third stage. Installing packages..." 0 0; sleep 2;
+
+echo "
+*****************
+    Stage 3
+*****************
+" >> /var/log/pistrap.log
 
 # Install things we need in order to grab and build firmware from github, and to work with the target remotely. Also, NTP as the date and time will be wrong, due to no RTC being on the board. This is important, as if you get errors relating to certificates, then the problem is likely due to one of two things. Either the time is set incorrectly on your Raspberry Pi, which you can fix by simply setting the time using NTP. The other possible issue is that you might not have the ca-certificates package installed, and so GitHub's SSL certificate isn't trusted.
 
@@ -436,15 +470,17 @@ apt-get -qq -y install git-core binutils ca-certificates locales console-common 
 wget  -q http://raw.github.com/Hexxeh/rpi-update/master/rpi-update -O /usr/bin/rpi-update
 chmod +x /usr/bin/rpi-update
 mkdir -p /lib/modules/3.1.9+
+mkdir -p /lib/modules/3.6.11+
 touch /boot/start.elf
 rpi-update
 echo \"root:$password\" | chpasswd
 sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
+apt-get update && yes | apt-get upgrade
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 rm -f third-stage
 " > third-stage
 chmod +x third-stage  &>> /var/log/pistrap.log
-LANG=C chroot $rootfs /third-stage  &>> /var/log/pistrap.log
+LANG=C chroot $rootfs /third-stage  2>&1 | tee -a /var/log/pistrap.log
 
 # Is this redundant?
 echo "deb $deb_mirror $suite main contrib non-free
@@ -465,8 +501,8 @@ LANG=C chroot $rootfs /cleanup &>> /var/log/pistrap.log
 
 cd
 
-umount $bootp &>> /var/log/pistrap.log
-umount $rootp &>> /var/log/pistrap.log
+umount $bootp 2>&1 | tee -a /var/log/pistrap.log
+umount $rootp 2>&1 | tee -a /var/log/pistrap.log
 
 if [ "$image" != "" ]; then
   kpartx -d $image &>> /var/log/pistrap.log
@@ -478,6 +514,15 @@ function sayDone
 {
 dialog --title "RaspberryPi Card Builder v0.2" \
 --msgbox "\n Done!" 0 0
+
+echo "
+*****************
+      done
+*****************
+" >> /var/log/pistrap.log
+
+cd $buildenv
+
 }
 
 function ddImage

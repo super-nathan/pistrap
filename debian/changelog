@@ -1,3 +1,12 @@
+pistrap (0.4) unstable; urgency=low
+
+  [ James Bennet ]
+  * Backported changes from SuperNathan's fork. More logging, more use of
+     USB  serial console if present, fixed hosts file in networking setup, UI 
+     enhancements, and fixed audio in asound.conf. Also fixed bust packaging.
+
+ -- James Bennet <github@james-bennet.com>  Sat, 16 Mar 2013 09:50:01 +0000
+
 pistrap (0.3) unstable; urgency=low
 
   [ James Bennet ]
