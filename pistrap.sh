@@ -297,6 +297,13 @@ fi
 
 function partitionDevice
 {
+
+echo "
+*****************
+    Partitioning
+*****************
+" >> /var/log/pistrap.log
+
 if [ "$device" == "" ]; then
   dialog --infobox "WARNING: No block device given, creating image instead." 0 0; sleep 2;
   mkdir -p $buildenv  &>> /var/log/pistrap.log
@@ -330,6 +337,12 @@ function mountDevice
 {
 dialog --infobox "Mounting Partitions..." 0 0; sleep 2;
 
+echo "
+*****************
+      Mounting
+*****************
+" >> /var/log/pistrap.log
+
 if [ "$image" != "" ]; then
   losetup -d $device &>> /var/log/pistrap.log
   device=`kpartx -va $image | sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
@@ -356,6 +369,12 @@ function formatDevice
 {
 dialog --infobox "Formatting Partitions ${bootp} and ${rootp}..." 0 0; sleep 3;
 
+echo "
+*****************
+      Formatting
+*****************
+" >> /var/log/pistrap.log
+
 mkfs.vfat $bootp &>> /var/log/pistrap.log # Boot partition
 mkfs.ext4 $rootp &>> /var/log/pistrap.log # Partition that will hold rootfs.
 
@@ -365,24 +384,38 @@ mkdir -p $rootfs &>> /var/log/pistrap.log
 function bootstrapDevice
 {
 dialog --infobox "Entering new filesystem at ${rootfs}..." 0 0; sleep 1;
+
+echo "
+*****************
+   Bootstrapping
+*****************
+" >> /var/log/pistrap.log
+
 mount $rootp $rootfs  &>> /var/log/pistrap.log
 cd $rootfs  &>> /var/log/pistrap.log
 
 dialog --infobox "Bootstrapping into ${rootfs}..." 0 0; sleep 2;
 # To bootstrap our new system, we run debootstrap, passing it the target arch and suite, as well as a directory to work in.
 # FIXME: We do --no-check-certificate and --no-check-gpg to make raspbian work.
-debootstrap --variant=minbase --no-check-certificate --no-check-gpg --foreign --arch $arch $suite $rootfs $deb_mirror  2>&1 | tee -a /var/log/pistrap.log
+debootstrap --no-check-certificate --no-check-gpg --foreign --arch $arch $suite $rootfs $deb_mirror  2>&1 | tee -a /var/log/pistrap.log
 
 dialog --infobox "Second stage. Chrooting into ${rootfs}..." 0 0; sleep 2;
 # To be able to chroot into a target file system, the qemu emulator for the target CPU needs to be accessible from inside the chroot jail.
 cp /usr/bin/qemu-arm-static usr/bin/  &>> /var/log/pistrap.log
 # Second stage - Run Post-install scripts.
-LANG=C chroot $rootfs /debootstrap/debootstrap --variant=minbase --no-check-certificate --no-check-gpg --second-stage  2>&1 | tee -a /var/log/pistrap.log
+LANG=C chroot $rootfs /debootstrap/debootstrap --no-check-certificate --no-check-gpg --second-stage  2>&1 | tee -a /var/log/pistrap.log
 }
 
 function configureBoot
 {
 dialog --infobox "Configuring boot partition ${bootp} on ${bootfs}..." 0 0; sleep 1;
+
+echo "
+*****************
+Configuring Boot
+*****************
+" >> /var/log/pistrap.log
+
 mount $bootp $bootfs  &>> /var/log/pistrap.log
 
 dialog --infobox "Configuring bootloader..." 0 0; sleep 1;
@@ -397,6 +430,13 @@ echo "proc            /proc           proc    defaults        0       0
 
 function networking
 {
+
+echo "
+*****************
+Configuring Net
+*****************
+" >> /var/log/pistrap.log
+
 #Configure networking for DHCP
 dialog --infobox "Setting hostname to ${hostname}..." 0 0; sleep 2;
 echo $hostname > etc/hostname
@@ -413,6 +453,13 @@ iface eth0 inet dhcp
 
 function configureSystem
 {
+
+echo "
+*****************
+    Configuring
+*****************
+" >> /var/log/pistrap.log
+
 # By default, debootstrap creates a very minimal system, so we will want to extend it by installing more packages.
 dialog --infobox "Configuring sources.list..." 0 0; sleep 1;
 echo "deb $deb_mirror $suite main contrib non-free
@@ -491,6 +538,12 @@ function cleanUp
 {
 dialog --infobox "Cleaning up..." 0 0; sleep 2;
 
+echo "
+*****************
+     Cleaning Up
+*****************
+" >> /var/log/pistrap.log
+
 # Tidy up afterward
 echo "#!/bin/bash
 apt-get -qq clean
@@ -517,7 +570,7 @@ dialog --title "RaspberryPi Card Builder v0.2" \
 
 echo "
 *****************
-      done
+      Done
 *****************
 " >> /var/log/pistrap.log
 
