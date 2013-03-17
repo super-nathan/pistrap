@@ -16,7 +16,7 @@ INSTALL:
 
 Remember that "trunk" may be unstable. This software is currently under development.  You are advised to build and install debian packages using dpkg. The package will pull in the host build dependencies and they will be automatically installed along with pistrap, enabling it to be run like a normal program.
 
-To make a package, f the pistrap folder run: 
+To make a package, from the pistrap folder run: 
 
     dpkg-buildpackage 
 
@@ -56,7 +56,4 @@ NEW:
 * Configured USB serial console for headless use - If you plug a USB-Serial dongle into your pi, and connect it to it over a null modem cable with Minicom, you can log in headlessly.
 
 TODO:
-* Support extremely small installs using minibase variant and /or emdebian?
-* Due to a known problem with Raspbian, we dont check GPG keys when using debootstrap. We probably should fix this.
-* A page of "qemu: Unsupported syscall" is a known problem, though it seems to work OK. We probably should fix this.
 * Cache packages and workdirs, for fast rebuilds.
