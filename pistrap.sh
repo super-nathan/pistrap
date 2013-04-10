@@ -80,7 +80,7 @@ function sayHello
 tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
 trap "rm -f $tempfile" 0 1 2 5 15
 
-dialog --title "RaspberryPi Card Builder v0.2" \
+whiptail --title "RaspberryPi Card Builder v0.2" \
 --msgbox "\n Please answer a few questions!" 0 0
 }
 
@@ -90,7 +90,7 @@ function getDevice
 tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
 trap "rm -f $tempfile" 0 1 2 5 15
 
-dialog --title "Enter path to block device to format, or CANCEL to make an image." --clear \
+whiptail --title "Enter path to block device to format, or CANCEL to make an image." --clear \
         --inputbox "Device path:" 0 0 2> $tempfile
 
 retval=$?
@@ -98,10 +98,10 @@ device=`cat $tempfile`
 
 case $retval in
   0)
-     dialog --infobox "Setting device: ${device}..." 0 0; sleep 1;;
+     whiptail --infobox "Setting device: ${device}..." 0 0; sleep 1;;
   1)
     $device=""
-	dialog --infobox "WARNING: No block device given, creating image instead..." 0 0; sleep 2;;  # You can dd this to a block device yourself later.
+	whiptail --infobox "WARNING: No block device given, creating image instead..." 0 0; sleep 2;;  # You can dd this to a block device yourself later.
   255)
       exit 1;;
 esac
@@ -113,7 +113,7 @@ function getBuildroot
 tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
 trap "rm -f $tempfile" 0 1 2 5 15
 
-dialog --title "Enter path to use as the buildroot (Working directory)" --clear \
+whiptail --title "Enter path to use as the buildroot (Working directory)" --clear \
         --inputbox "Buildroot path:" 0 0 2> $tempfile
 
 retval=$?
@@ -124,7 +124,7 @@ bootfs="${rootfs}/boot"
 
 case $retval in
   0)
-     dialog --infobox "Working in build root: ${buildenv}..." 0 0; sleep 1;;
+     whiptail --infobox "Working in build root: ${buildenv}..." 0 0; sleep 1;;
   1)
     getDevice;;
   255)
@@ -135,7 +135,7 @@ esac
 # Choose the target's Debian suite (Release e.g. stable, testing, sid), that you want to bootstrap.
 function getSuite
 {
-dialog --clear --title "RaspberryPi Card Builder v0.2" \
+whiptail --clear --title "RaspberryPi Card Builder v0.2" \
         --menu "Please choose your Suite: " 0 0 0 \
         "squeeze"  "squeeze" \
         "wheezy" "wheezy" \
@@ -146,7 +146,7 @@ suite=`cat $tempfile`
 
 case $retval in
   0)
-    dialog --infobox "Setting Suite: ${suite}..." 0 0; sleep 1;;
+    whiptail --infobox "Setting Suite: ${suite}..." 0 0; sleep 1;;
   1)
     getBuildroot;;
   255)
@@ -160,7 +160,7 @@ function getArch
 tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
 trap "rm -f $tempfile" 0 1 2 5 15
 
-dialog --clear --title "RaspberryPi Card Builder v0.2" \
+whiptail --clear --title "RaspberryPi Card Builder v0.2" \
         --menu "Please choose an Architecture:" 0 0 0 \
         "armel"  "armel" \
         "armhf" "armhf" 2> $tempfile
@@ -170,7 +170,7 @@ arch=`cat $tempfile`
 
 case $retval in
   0)
-     dialog --infobox "Setting Architecture: ${arch}..." 0 0; sleep 1;;
+     whiptail --infobox "Setting Architecture: ${arch}..." 0 0; sleep 1;;
   1)
     getSuite;;
   255)
@@ -188,7 +188,7 @@ function getMirror
 tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
 trap "rm -f $tempfile" 0 1 2 5 15
 
-dialog --clear --title "RaspberryPi Card Builder v0.2" \
+whiptail --clear --title "RaspberryPi Card Builder v0.2" \
         --menu "Please choose a mirror: " 0 0 0 \
         "http://http.debian.net/debian"  "http://http.debian.net/debian" \
         "http://archive.raspbian.org/raspbian" "http://archive.raspbian.org/raspbian" 2> $tempfile
@@ -198,7 +198,7 @@ deb_mirror=`cat $tempfile`
 
 case $retval in
   0)
-     dialog --infobox "Configuring mirror: ${deb_mirror}..." 0 0; sleep 1;;
+     whiptail --infobox "Configuring mirror: ${deb_mirror}..." 0 0; sleep 1;;
   1)
    getArch;;
   255)
@@ -212,7 +212,7 @@ function getHostname
 tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
 trap "rm -f $tempfile" 0 1 2 5 15
 
-dialog --title "Enter Hostname" --clear \
+whiptail --title "Enter Hostname" --clear \
         --inputbox "Target Hostname:" 0 0 2> $tempfile
 
 retval=$?
@@ -220,7 +220,7 @@ hostname=`cat $tempfile`
 
 case $retval in
   0)
-     dialog --infobox "Setting hostname: ${hostname}..." 0 0; sleep 1;;
+     whiptail --infobox "Setting hostname: ${hostname}..." 0 0; sleep 1;;
   1)
     getMirror;;
   255)
@@ -234,7 +234,7 @@ function getPassword
 tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
 trap "rm -f $tempfile" 0 1 2 5 15
 
-dialog --title "Enter root password:" --clear \
+whiptail --title "Enter root password:" --clear \
         --inputbox "Root password:" 0 0 2> $tempfile
 
 retval=$?
@@ -242,10 +242,10 @@ password=`cat $tempfile`
 
 case $retval in
   0)
-     dialog --infobox "Setting root password: ${password}..." 0 0; sleep 1;;
+     whiptail --infobox "Setting root password: ${password}..." 0 0; sleep 1;;
   1)
     $password="raspberry"
-	dialog --infobox "WARNING: No root password given! - Setting default of 'raspberry'.." 0 0; sleep 2;; 
+	whiptail --infobox "WARNING: No root password given! - Setting default of 'raspberry'.." 0 0; sleep 2;; 
   255)
       exit 1;;
 esac
@@ -263,12 +263,12 @@ done
 
 echo $pkglist
 
-choices=`dialog --stdout --title "Choose Packages" --clear --checklist 'Choose Packages:' 80 40 20 $pkglist`
+choices=`whiptail --stdout --title "Choose Packages" --clear --checklist 'Choose Packages:' 80 40 20 $pkglist`
 }
 
 function sayFinalWarning
 {
-dialog --yesno "This utility is beta software and may go horribly wrong.\n\nYou are bootstrapping ${hostname} with ${suite} (${arch}), from ${deb_mirror} into ${buildenv}\n\nAre you SURE you want to Continue?" 0 0
+whiptail --yesno "This utility is beta software and may go horribly wrong.\n\nYou are bootstrapping ${hostname} with ${suite} (${arch}), from ${deb_mirror} into ${buildenv}\n\nAre you SURE you want to Continue?" 0 0
 rc=$?
 if [ "${rc}" != "0" ]; then
   exit 1
@@ -278,7 +278,7 @@ fi
 function checkRequirements
 {
 if [ $EUID -ne 0 ]; then
-dialog --title "RaspberryPi Card Builder v0.2" \
+whiptail --title "RaspberryPi Card Builder v0.2" \
 --msgbox "\n ERROR: This tool must be run with superuser rights!" 0 0 # Because debootstrap will create device nodes (using mknod) as well as chroot into the newly created system
   exit 1
 fi
@@ -287,11 +287,11 @@ fi
 function checkDevice
 {
 if ! [ -b $device ]; then
-dialog --title "RaspberryPi Card Builder v0.2" \
+whiptail --title "RaspberryPi Card Builder v0.2" \
 --msgbox "\n ERROR: Device: ${device} is not a block device!" 0 0
   getDevice
 else
-dialog --infobox "Device: ${device} OK..." 0 0; sleep 2;
+whiptail --infobox "Device: ${device} OK..." 0 0; sleep 2;
 fi
 }
 
@@ -305,14 +305,14 @@ echo "
 " >> /var/log/pistrap.log
 
 if [ "$device" == "" ]; then
-  dialog --infobox "WARNING: No block device given, creating image instead." 0 0; sleep 2;
+  whiptail --infobox "WARNING: No block device given, creating image instead." 0 0; sleep 2;
   mkdir -p $buildenv  &>> /var/log/pistrap.log
   image="${buildenv}/pistrap_${suite}_${arch}_${mydate}.img"
   dd if=/dev/zero of=$image bs=1MB count=$size  &>> /var/log/pistrap.log
   device=`losetup -f --show $image`
-  dialog --infobox "Image: ${image} created and mounted as: ${device}" 0 0; sleep 2;
+  whiptail --infobox "Image: ${image} created and mounted as: ${device}" 0 0; sleep 2;
 else
-  dialog --infobox "Partitioning Device ${device}" 0 0; sleep 1;
+  whiptail --infobox "Partitioning Device ${device}" 0 0; sleep 1;
   dd if=/dev/zero of=$device bs=512 count=1 &>> /var/log/pistrap.log
 fi
 
@@ -335,7 +335,7 @@ EOF
 
 function mountDevice
 {
-dialog --infobox "Mounting Partitions..." 0 0; sleep 2;
+whiptail --infobox "Mounting Partitions..." 0 0; sleep 2;
 
 echo "
 *****************
@@ -354,7 +354,7 @@ else
     bootp=${device}p1
     rootp=${device}p2
     if ! [ -b ${bootp} ]; then
-dialog --title "RaspberryPi Card Builder v0.2" \
+whiptail --title "RaspberryPi Card Builder v0.2" \
 --msgbox "\n ERROR: Can't find boot partition, neither as: ${device}1, nor as: ${device}p1. Exiting!" 0 0
       exit 1
     fi
@@ -367,7 +367,7 @@ fi
 
 function formatDevice
 {
-dialog --infobox "Formatting Partitions ${bootp} and ${rootp}..." 0 0; sleep 3;
+whiptail --infobox "Formatting Partitions ${bootp} and ${rootp}..." 0 0; sleep 3;
 
 echo "
 *****************
@@ -383,7 +383,7 @@ mkdir -p $rootfs &>> /var/log/pistrap.log
 
 function bootstrapDevice
 {
-dialog --infobox "Entering new filesystem at ${rootfs}..." 0 0; sleep 1;
+whiptail --infobox "Entering new filesystem at ${rootfs}..." 0 0; sleep 1;
 
 echo "
 *****************
@@ -394,12 +394,12 @@ echo "
 mount $rootp $rootfs  &>> /var/log/pistrap.log
 cd $rootfs  &>> /var/log/pistrap.log
 
-dialog --infobox "Bootstrapping into ${rootfs}..." 0 0; sleep 2;
+whiptail --infobox "Bootstrapping into ${rootfs}..." 0 0; sleep 2;
 # To bootstrap our new system, we run debootstrap, passing it the target arch and suite, as well as a directory to work in.
 # FIXME: We do --no-check-certificate and --no-check-gpg to make raspbian work.
 debootstrap --no-check-certificate --no-check-gpg --foreign --arch $arch $suite $rootfs $deb_mirror  2>&1 | tee -a /var/log/pistrap.log
 
-dialog --infobox "Second stage. Chrooting into ${rootfs}..." 0 0; sleep 2;
+whiptail --infobox "Second stage. Chrooting into ${rootfs}..." 0 0; sleep 2;
 # To be able to chroot into a target file system, the qemu emulator for the target CPU needs to be accessible from inside the chroot jail.
 cp /usr/bin/qemu-arm-static usr/bin/  &>> /var/log/pistrap.log
 # Second stage - Run Post-install scripts.
@@ -408,7 +408,7 @@ LANG=C chroot $rootfs /debootstrap/debootstrap --no-check-certificate --no-check
 
 function configureBoot
 {
-dialog --infobox "Configuring boot partition ${bootp} on ${bootfs}..." 0 0; sleep 1;
+whiptail --infobox "Configuring boot partition ${bootp} on ${bootfs}..." 0 0; sleep 1;
 
 echo "
 *****************
@@ -418,11 +418,11 @@ Configuring Boot
 
 mount $bootp $bootfs  &>> /var/log/pistrap.log
 
-dialog --infobox "Configuring bootloader..." 0 0; sleep 1;
+whiptail --infobox "Configuring bootloader..." 0 0; sleep 1;
 echo "dwc_otg.lpm_enable=0 console=ttyUSB0,115200 kgdboc=ttyUSB0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait" > boot/cmdline.txt
 
 #The system you have just created needs a few tweaks so you can use it.
-dialog --infobox "Configuring fstab..." 0 0; sleep 1;
+whiptail --infobox "Configuring fstab..." 0 0; sleep 1;
 echo "proc            /proc           proc    defaults        0       0
 /dev/mmcblk0p1  /boot           vfat    defaults        0       0
 " > etc/fstab
@@ -438,11 +438,11 @@ Configuring Net
 " >> /var/log/pistrap.log
 
 #Configure networking for DHCP
-dialog --infobox "Setting hostname to ${hostname}..." 0 0; sleep 2;
+whiptail --infobox "Setting hostname to ${hostname}..." 0 0; sleep 2;
 echo $hostname > etc/hostname
 echo "127.0.1.1\t$hostname\n" >> etc/hosts
 
-dialog --infobox "Configuring network adapters..." 0 0; sleep 2;
+whiptail --infobox "Configuring network adapters..." 0 0; sleep 2;
 echo "auto lo
 iface lo inet loopback
 
@@ -461,12 +461,12 @@ echo "
 " >> /var/log/pistrap.log
 
 # By default, debootstrap creates a very minimal system, so we will want to extend it by installing more packages.
-dialog --infobox "Configuring sources.list..." 0 0; sleep 1;
+whiptail --infobox "Configuring sources.list..." 0 0; sleep 1;
 echo "deb $deb_mirror $suite main contrib non-free
 " > etc/apt/sources.list
 
 # The (buggyish) analog audio driver for the SoC.
-dialog --infobox "Configuring kernel modules..." 0 0; sleep 1;
+whiptail --infobox "Configuring kernel modules..." 0 0; sleep 1;
 echo "vchiq
 snd_bcm2835
 " >> etc/modules
@@ -488,10 +488,10 @@ pcm.!default {
 " > etc/asound.conf
 
 # Will spawn consoles on USB serial adapter for headless use.
-dialog --infobox "Configuring USB serial console..." 0 0; sleep 1;
+whiptail --infobox "Configuring USB serial console..." 0 0; sleep 1;
 echo "T0:23:respawn:/sbin/getty -L ttyUSB0 115200 vt100" >> etc/inittab
 
-dialog --infobox "Configuring locales..." 0 0; sleep 1;
+whiptail --infobox "Configuring locales..." 0 0; sleep 1;
 echo "console-common	console-data/keymap/policy	select	Select keymap from full list
 console-common	console-data/keymap/full	select	de-latin1-nodeadkeys
 " > debconf.set
@@ -499,7 +499,7 @@ console-common	console-data/keymap/full	select	de-latin1-nodeadkeys
 
 function thirdStage
 {
-dialog --infobox "Third stage. Installing packages..." 0 0; sleep 2;
+whiptail --infobox "Third stage. Installing packages..." 0 0; sleep 2;
 
 echo "
 *****************
@@ -536,7 +536,7 @@ echo "deb $deb_mirror $suite main contrib non-free
 
 function cleanUp
 {
-dialog --infobox "Cleaning up..." 0 0; sleep 2;
+whiptail --infobox "Cleaning up..." 0 0; sleep 2;
 
 echo "
 *****************
@@ -559,13 +559,13 @@ umount $rootp 2>&1 | tee -a /var/log/pistrap.log
 
 if [ "$image" != "" ]; then
   kpartx -d $image &>> /var/log/pistrap.log
-  dialog --infobox "Created Image: ${image}." 0 0; sleep 2;
+  whiptail --infobox "Created Image: ${image}." 0 0; sleep 2;
 fi
 }
 
 function sayDone
 {
-dialog --title "RaspberryPi Card Builder v0.2" \
+whiptail --title "RaspberryPi Card Builder v0.2" \
 --msgbox "\n Done!" 0 0
 
 echo "
@@ -583,7 +583,7 @@ function ddImage
 tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
 trap "rm -f $tempfile" 0 1 2 5 15
 
-dialog --title "Enter path to block device to write image to, if you wish." --clear \
+whiptail --title "Enter path to block device to write image to, if you wish." --clear \
         --inputbox "Device path:" 0 0 2> $tempfile
 
 retval=$?
@@ -591,7 +591,7 @@ device=`cat $tempfile`
 
 case $retval in
   0)
-     dialog --infobox "Writing image to: ${device}..." 0 0; sleep 1;
+     whiptail --infobox "Writing image to: ${device}..." 0 0; sleep 1;
 	dd bs=1M if=$image of=$device;;
   1)
       sayDone;;
