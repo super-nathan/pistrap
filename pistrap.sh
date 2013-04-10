@@ -36,9 +36,7 @@ checkRequirements
 sayHello
 getDevice
 getBuildroot
-getSuite
-getArch
-getMirror
+getType
 getHostname
 getPassword
 pickPackages
@@ -100,7 +98,7 @@ case $retval in
   0)
      whiptail --infobox "Setting device: ${device}..." 0 0; sleep 1;;
   1)
-    $device=""
+    device=""
 	whiptail --infobox "WARNING: No block device given, creating image instead..." 0 0; sleep 2;;  # You can dd this to a block device yourself later.
   255)
       exit 1;;
@@ -132,9 +130,27 @@ case $retval in
 esac
 }
 
-# Choose the target's Debian suite (Release e.g. stable, testing, sid), that you want to bootstrap.
-function getSuite
+
+# It doesnt make any sence to select things in the old order. Raspbian doesnt have a sid or a squeeze. Debian doesnt have armhf. This is reworked for a logical flow.
+function getType
 {
+tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
+trap "rm -f $tempfile" 0 1 2 5 15
+
+whiptail --clear --title "RaspberryPi Card Builder v0.2" \
+        --menu "Please choose an Architecture:" 0 0 0 \
+        "armel"  "Debian" \
+        "armhf" "Raspbian" 2> $tempfile
+
+retval=$?
+arch=`cat $tempfile`
+
+if [ "${arch}" = "armhf" ] ; then
+suite="wheezy"
+deb_mirror="http://archive.raspbian.org/raspbian"
+else
+tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
+trap "rm -f $tempfile" 0 1 2 5 15
 whiptail --clear --title "RaspberryPi Card Builder v0.2" \
         --menu "Please choose your Suite: " 0 0 0 \
         "squeeze"  "squeeze" \
@@ -143,68 +159,20 @@ whiptail --clear --title "RaspberryPi Card Builder v0.2" \
 
 retval=$?
 suite=`cat $tempfile`
+deb_mirror="http://http.debian.net/debian"
+fi
 
 case $retval in
   0)
-    whiptail --infobox "Setting Suite: ${suite}..." 0 0; sleep 1;;
+     whiptail --infobox "Setting up for ${arch}...." 0 0; sleep 1;;
   1)
-    getBuildroot;;
+   getBuildroot;;
   255)
       exit 1;;
 esac
+
 }
 
-# Choose the target architecture (i.e. armel, armhf), that you want to bootstrap.
-function getArch
-{
-tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
-trap "rm -f $tempfile" 0 1 2 5 15
-
-whiptail --clear --title "RaspberryPi Card Builder v0.2" \
-        --menu "Please choose an Architecture:" 0 0 0 \
-        "armel"  "armel" \
-        "armhf" "armhf" 2> $tempfile
-
-retval=$?
-arch=`cat $tempfile`
-
-case $retval in
-  0)
-     whiptail --infobox "Setting Architecture: ${arch}..." 0 0; sleep 1;;
-  1)
-    getSuite;;
-  255)
-      exit 1;;
-esac
-}
-
-# Mirror from which the necessary .deb packages will be downloaded. Choose any mirror, as long as it has the architecture you are trying to bootstrap. See http://www.debian.org/mirror/list for the list of available Debian mirrors.
-
-# I have only currently tested debian (wheezy/armel) from http://http.debian.net/debian.
-# Raspbian (wheezy/armhf) from  should work too. I could not get emdebian (squeeze/armel) from http://ftp.uk.debian.org/emdebian/grip to work.
-
-function getMirror
-{
-tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
-trap "rm -f $tempfile" 0 1 2 5 15
-
-whiptail --clear --title "RaspberryPi Card Builder v0.2" \
-        --menu "Please choose a mirror: " 0 0 0 \
-        "http://http.debian.net/debian"  "http://http.debian.net/debian" \
-        "http://archive.raspbian.org/raspbian" "http://archive.raspbian.org/raspbian" 2> $tempfile
-
-retval=$?
-deb_mirror=`cat $tempfile`
-
-case $retval in
-  0)
-     whiptail --infobox "Configuring mirror: ${deb_mirror}..." 0 0; sleep 1;;
-  1)
-   getArch;;
-  255)
-      exit 1;;
-esac
-}
 
 # Let the user type in the chosen target hostname
 function getHostname
@@ -244,7 +212,7 @@ case $retval in
   0)
      whiptail --infobox "Setting root password: ${password}..." 0 0; sleep 1;;
   1)
-    $password="raspberry"
+    password="raspberry"
 	whiptail --infobox "WARNING: No root password given! - Setting default of 'raspberry'.." 0 0; sleep 2;; 
   255)
       exit 1;;
@@ -253,17 +221,30 @@ esac
 
 function pickPackages
 {
-pkglist=""
-n=1
-for pkg in $(cat  /etc/pistrap/packages.list)
-do
-        pkglist="$pkglist $pkg $n off"
-        n=$[n+1]
-done
+tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/test$$
+trap "rm -f $tempfile" 0 1 2 5 15
+	
+whiptail --title "Choose yer packages" --checklist \
+"Do you want any of these packages installed?" 20 60 12 \
+"less" "A pager, you prolly want this" ON \
+"vim" "An editor, not as cool as Nano" OFF \
+"screen" "Runs lots of stuff, inone terminal" OFF \
+"minicom" "Does.........Something" OFF \
+"zsh" "Probably the best shell ever" OFF \
+"htop" "A better system monitor" OFF 2> $tempfile
 
-echo $pkglist
+retval=$?
+choices=`cat $tempfile`
 
-choices=`whiptail --stdout --title "Choose Packages" --clear --checklist 'Choose Packages:' 80 40 20 $pkglist`
+case $retval in
+  0)
+     whiptail --infobox "Selections Set..." 0 0; sleep 1;;
+  1)
+   getPassword;;
+  255)
+      exit 1;;
+esac
+
 }
 
 function sayFinalWarning

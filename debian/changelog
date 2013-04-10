@@ -1,3 +1,9 @@
+pistrap (0.6) unstable; urgency=low
+
+  * fixed work-flow
+
+ -- "Super" Nathan Weber <supernathansunshine@gmail.com>  Wed, 10 Apr 2013 21:10:22 +0900
+
 pistrap (0.5) unstable; urgency=low
 
   * Non-maintainer upload.
