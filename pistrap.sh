@@ -236,6 +236,13 @@ whiptail --title "Choose yer packages" --checklist \
 retval=$?
 choices=`cat $tempfile`
 
+echo "
+***************************
+ Installing additional software:
+ ${choices}
+***************************
+" > /var/log/pistrap.log
+
 case $retval in
   0)
      whiptail --infobox "Selections Set..." 0 0; sleep 1;;
